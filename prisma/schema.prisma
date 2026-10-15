@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  CUSTOMER
+  STAFF
+}
+
+enum SeatType {
+  NORMAL
+  VIP
+  COUPLE
+}
+
+enum MovieStatus {
+  NOW_SHOWING
+  COMING_SOON
+  ENDED
+}
+
+enum ShowtimeStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentMethod {
+  MOMO
+  VNPAY
+  VISA
+  ATM
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum TokenType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+model User {
+  id           Int                 @id @default(autoincrement())
+  email        String              @unique
+  phone        String?             @unique
+  passwordHash String
+  fullName     String
+  role         Role                @default(CUSTOMER)
+  isVerified   Boolean             @default(false)
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  bookings     Booking[]
+  tokens       VerificationToken[]
+}
+
+model VerificationToken {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Cinema {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String
+  region    String
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  rooms     Room[]
+}
+
+model Room {
+  id        Int        @id @default(autoincrement())
+  name      String
+  isActive  Boolean    @default(true)
+  cinemaId  Int
+  cinema    Cinema     @relation(fields: [cinemaId], references: [id])
+  seats     Seat[]
+  showtimes Showtime[]
+
+  @@unique([cinemaId, name])
+}
+
+model Seat {
+  id           Int           @id @default(autoincrement())
+  rowLabel     String
+  seatNumber   Int
+  type         SeatType      @default(NORMAL)
+  isActive     Boolean       @default(true)
+  roomId       Int
+  room         Room          @relation(fields: [roomId], references: [id])
+  bookingSeats BookingSeat[]
+
+  @@unique([roomId, rowLabel, seatNumber])
+}
+
+model Movie {
+  id            Int         @id @default(autoincrement())
+  tmdbId        Int?        @unique
+  title         String
+  originalTitle String?
+  overview      String?     @db.Text
+  genres        String?
+  durationMin   Int
+  ageRating     String?
+  posterUrl     String?
+  backdropUrl   String?
+  trailerKey    String?
+  releaseDate   DateTime?
+  status        MovieStatus @default(COMING_SOON)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  showtimes     Showtime[]
+}
+
+model Showtime {
+  id           Int            @id @default(autoincrement())
+  startTime    DateTime
+  endTime      DateTime
+  price        Int
+  status       ShowtimeStatus @default(ACTIVE)
+  movieId      Int
+  roomId       Int
+  movie        Movie          @relation(fields: [movieId], references: [id])
+  room         Room           @relation(fields: [roomId], references: [id])
+  bookings     Booking[]
+  bookingSeats BookingSeat[]
+
+  @@index([roomId, startTime])
+  @@index([movieId, startTime])
+}
+
+model Booking {
+  id          Int           @id @default(autoincrement())
+  code        String        @unique
+  totalAmount Int
+  status      BookingStatus @default(PENDING)
+  expiresAt   DateTime?
+  createdAt   DateTime      @default(now())
+  userId      Int
+  showtimeId  Int
+  user        User          @relation(fields: [userId], references: [id])
+  showtime    Showtime      @relation(fields: [showtimeId], references: [id])
+  seats       BookingSeat[]
+  payment     Payment?
+}
+
+model BookingSeat {
+  id         Int      @id @default(autoincrement())
+  price      Int
+  bookingId  Int
+  showtimeId Int
+  seatId     Int
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  showtime   Showtime @relation(fields: [showtimeId], references: [id])
+  seat       Seat     @relation(fields: [seatId], references: [id])
+
+  @@unique([showtimeId, seatId])
+}
+
+model Payment {
+  id              Int           @id @default(autoincrement())
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  amount          Int
+  transactionCode String?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  bookingId       Int           @unique
+  booking         Booking       @relation(fields: [bookingId], references: [id])
+}
