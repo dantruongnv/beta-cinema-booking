@@ -12,6 +12,13 @@ export async function GET() {
     return Response.json({ ok: true, cinemas, movies, showtimes });
   } catch (error) {
     console.error(error);
-    return Response.json({ ok: false, message: "Không kết nối được database" }, { status: 500 });
+    return Response.json(
+      {
+        ok: false,
+        message: "Không kết nối được database",
+        detail: process.env.NODE_ENV !== "production" ? String(error.message) : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
