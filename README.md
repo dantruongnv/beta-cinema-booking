@@ -22,6 +22,9 @@ Next.js, Tailwind CSS, PostgreSQL, Prisma, TMDB API, Vercel
 4. Chạy: `npm run dev`
 5. Mở http://localhost:3000
 
+ ## Demo
+   https://beta-cinema-booking.vercel.app/
+
 ## Nguồn dữ liệu
 
 Thông tin phim được lấy từ TMDB API.
