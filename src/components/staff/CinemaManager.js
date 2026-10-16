@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import Link from "next/link";
+
 const EMPTY_FORM = { name: "", address: "", region: "", phone: "" };
 
 export default function CinemaManager() {
@@ -213,6 +215,7 @@ export default function CinemaManager() {
                 <td className="p-2">{c._count.rooms}</td>
                 <td className="p-2">{c.isActive ? "Hoạt động" : "Đã ẩn"}</td>
                 <td className="flex gap-2 p-2">
+                  <Link href={`/staff/cinemas/${c.id}/rooms`} className="underline">Phòng chiếu</Link>
                   <button onClick={() => openEdit(c)} className="underline">Sửa</button>
                   <button onClick={() => toggleActive(c)} className="underline">{c.isActive ? "Ẩn" : "Hiện"}</button>
                   <button onClick={() => handleDelete(c)} className="text-red-500 underline">Xóa</button>

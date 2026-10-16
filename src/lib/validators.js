@@ -51,3 +51,46 @@ export function validateCinemaInput(body, { partial = false } = {}) {
 
   return { data };
 }
+
+function parseIntInRange(value, min, max) {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= min && n <= max ? n : null;
+}
+
+// Kiểm tra dữ liệu phòng. partial=true: dùng khi sửa (chỉ tên và trạng thái)
+export function validateRoomInput(body, { partial = false } = {}) {
+  const data = {};
+
+  if (body.name === undefined) {
+    if (!partial) return { error: "Tên phòng là bắt buộc" };
+  } else {
+    const name = String(body.name).trim();
+    if (name.length < 1 || name.length > 50) {
+      return { error: "Tên phòng phải từ 1 đến 50 ký tự" };
+    }
+    data.name = name;
+  }
+
+  if (body.isActive !== undefined) {
+    if (typeof body.isActive !== "boolean") return { error: "Trạng thái không hợp lệ" };
+    data.isActive = body.isActive;
+  }
+
+  if (!partial) {
+    const rows = parseIntInRange(body.rows, 1, 20);
+    if (rows === null) return { error: "Số hàng ghế phải là số nguyên từ 1 đến 20" };
+
+    const seatsPerRow = parseIntInRange(body.seatsPerRow, 1, 20);
+    if (seatsPerRow === null) return { error: "Số ghế mỗi hàng phải là số nguyên từ 1 đến 20" };
+
+    const vipRows =
+      body.vipRows === undefined || body.vipRows === "" ? 0 : parseIntInRange(body.vipRows, 0, rows);
+    if (vipRows === null) return { error: `Số hàng VIP phải là số nguyên từ 0 đến ${rows}` };
+
+    data.rows = rows;
+    data.seatsPerRow = seatsPerRow;
+    data.vipRows = vipRows;
+  }
+
+  return { data };
+}
