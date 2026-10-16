@@ -10,3 +10,6 @@ export function buildSeatLayout(rows, seatsPerRow, vipRows = 0) {
   }
   return seats;
 }
+
+export const MAX_ROWS = 20;
+export const MAX_SEATS_PER_ROW = 20;
