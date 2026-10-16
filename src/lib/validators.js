@@ -94,3 +94,93 @@ export function validateRoomInput(body, { partial = false } = {}) {
 
   return { data };
 }
+
+// TMDB không có phân loại độ tuổi theo chuẩn Việt Nam nên nhân viên tự chọn
+export const AGE_RATINGS = ["P", "K", "T13", "T16", "T18"];
+export const MOVIE_STATUSES = ["NOW_SHOWING", "COMING_SOON", "ENDED"];
+
+// Kiểm tra dữ liệu phim. partial=true: dùng khi sửa (chỉ kiểm tra các trường có gửi lên)
+export function validateMovieInput(body, { partial = false } = {}) {
+  const data = {};
+
+  if (body.title === undefined) {
+    if (!partial) return { error: "Tên phim là bắt buộc" };
+  } else {
+    const title = String(body.title).trim();
+    if (title.length < 1 || title.length > 200) {
+      return { error: "Tên phim phải từ 1 đến 200 ký tự" };
+    }
+    data.title = title;
+  }
+
+  // Các trường chữ không bắt buộc: để trống thì lưu null
+  const optionalTexts = {
+    originalTitle: ["Tên gốc", 200],
+    overview: ["Mô tả", 5000],
+    genres: ["Thể loại", 200],
+  };
+  for (const [key, [label, max]] of Object.entries(optionalTexts)) {
+    if (body[key] === undefined) continue;
+    const value = String(body[key] ?? "").trim();
+    if (value.length > max) return { error: `${label} tối đa ${max} ký tự` };
+    data[key] = value || null;
+  }
+
+  if (body.durationMin === undefined) {
+    if (!partial) return { error: "Thời lượng là bắt buộc" };
+  } else {
+    const n = Number(body.durationMin);
+    if (!Number.isInteger(n) || n < 1 || n > 600) {
+      return { error: "Thời lượng phải là số phút từ 1 đến 600" };
+    }
+    data.durationMin = n;
+  }
+
+  if (body.ageRating !== undefined) {
+    const value = body.ageRating === "" || body.ageRating === null ? null : String(body.ageRating);
+    if (value !== null && !AGE_RATINGS.includes(value)) {
+      return { error: "Phân loại độ tuổi không hợp lệ" };
+    }
+    data.ageRating = value;
+  }
+
+  // Ảnh chỉ nhận đường dẫn https
+  for (const [key, label] of [["posterUrl", "Poster"], ["backdropUrl", "Ảnh nền"]]) {
+    if (body[key] === undefined) continue;
+    const value = String(body[key] ?? "").trim();
+    if (value && (value.length > 500 || !/^https:\/\//i.test(value))) {
+      return { error: `${label} phải là đường dẫn bắt đầu bằng https://` };
+    }
+    data[key] = value || null;
+  }
+
+  if (body.trailerKey !== undefined) {
+    const value = String(body.trailerKey ?? "").trim();
+    if (value && !/^[\w-]{6,20}$/.test(value)) {
+      return { error: "Mã trailer YouTube không hợp lệ" };
+    }
+    data.trailerKey = value || null;
+  }
+
+  if (body.releaseDate !== undefined) {
+    if (!body.releaseDate) {
+      data.releaseDate = null;
+    } else {
+      const date = new Date(body.releaseDate);
+      if (Number.isNaN(date.getTime())) return { error: "Ngày khởi chiếu không hợp lệ" };
+      data.releaseDate = date;
+    }
+  }
+
+  if (body.status !== undefined) {
+    if (!MOVIE_STATUSES.includes(body.status)) return { error: "Trạng thái phim không hợp lệ" };
+    data.status = body.status;
+  }
+
+  if (body.isActive !== undefined) {
+    if (typeof body.isActive !== "boolean") return { error: "Trạng thái không hợp lệ" };
+    data.isActive = body.isActive;
+  }
+
+  return { data };
+}
