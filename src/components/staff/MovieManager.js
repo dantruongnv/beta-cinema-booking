@@ -6,11 +6,46 @@ import { apiRequest } from "@/lib/clientApi";
 const STATUS_LABEL = { NOW_SHOWING: "Đang chiếu", COMING_SOON: "Sắp chiếu", ENDED: "Ngừng chiếu" };
 const AGE_RATINGS = ["P", "K", "T13", "T16", "T18"];
 
+const EMPTY_FORM = {
+  title: "",
+  originalTitle: "",
+  overview: "",
+  genres: "",
+  durationMin: "120",
+  ageRating: "",
+  releaseDate: "",
+  status: "COMING_SOON",
+  posterUrl: "",
+  backdropUrl: "",
+  trailerKey: "",
+};
+
+// Cho phép dán cả đường dẫn YouTube, tự lấy mã video
+function extractYoutubeKey(input) {
+  const value = String(input ?? "").trim();
+  const match = value.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{6,20})/);
+  return match ? match[1] : value;
+}
+
+function Field({ label, children, className = "" }) {
+  return (
+    <label className={`flex flex-col gap-1 text-sm ${className}`}>
+      {label}
+      {children}
+    </label>
+  );
+}
+
 export default function MovieManager() {
   const [movies, setMovies] = useState([]);
   const [filters, setFilters] = useState({ q: "", status: "", active: "all" });
   const [message, setMessage] = useState({ type: "", text: "" });
   const [loading, setLoading] = useState(false);
+
+  // Form thêm/sửa phim
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editingId, setEditingId] = useState(null); // null = đang thêm mới
+  const [showForm, setShowForm] = useState(false);
 
   // Nhập phim từ TMDB
   const [showImport, setShowImport] = useState(false);
@@ -41,6 +76,64 @@ export default function MovieManager() {
     const timer = setTimeout(load, 300);
     return () => clearTimeout(timer);
   }, [load]);
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setShowForm(true);
+    setShowImport(false);
+    setMessage({ type: "", text: "" });
+    scrollToTop();
+  }
+
+  function openEdit(movie) {
+    setEditingId(movie.id);
+    setForm({
+      title: movie.title,
+      originalTitle: movie.originalTitle ?? "",
+      overview: movie.overview ?? "",
+      genres: movie.genres ?? "",
+      durationMin: String(movie.durationMin),
+      ageRating: movie.ageRating ?? "",
+      releaseDate: movie.releaseDate ? movie.releaseDate.slice(0, 10) : "",
+      status: movie.status,
+      posterUrl: movie.posterUrl ?? "",
+      backdropUrl: movie.backdropUrl ?? "",
+      trailerKey: movie.trailerKey ?? "",
+    });
+    setShowForm(true);
+    setShowImport(false);
+    setMessage({ type: "", text: "" });
+    scrollToTop();
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setMessage({ type: "", text: "" });
+
+    const body = { ...form, trailerKey: extractYoutubeKey(form.trailerKey) };
+    const result = editingId
+      ? await apiRequest(`/api/staff/movies/${editingId}`, { method: "PATCH", body })
+      : await apiRequest("/api/staff/movies", { method: "POST", body });
+
+    if (!result.ok) {
+      setMessage({ type: "error", text: result.message });
+      return;
+    }
+    setMessage({ type: "success", text: editingId ? "Đã cập nhật phim" : "Đã thêm phim mới" });
+    closeForm();
+    load();
+  }
 
   async function searchTmdb(e) {
     e.preventDefault();
@@ -80,7 +173,7 @@ export default function MovieManager() {
     setMessage({
       type: "success",
       text: result.data.durationAssumed
-        ? `Đã nhập "${item.title}". TMDB chưa có thời lượng nên tạm đặt 120 phút, hãy chỉnh lại.`
+        ? `Đã nhập "${item.title}". TMDB chưa có thời lượng nên tạm đặt 120 phút, hãy bấm Sửa để chỉnh lại.`
         : `Đã nhập "${item.title}"`,
     });
     load();
@@ -111,6 +204,7 @@ export default function MovieManager() {
   }
 
   const inputClass = "rounded border p-2 text-black";
+  const setField = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
   return (
     <div className="flex flex-col gap-4">
@@ -133,13 +227,92 @@ export default function MovieManager() {
           <option value="active">Đang hiện</option>
           <option value="inactive">Đã ẩn</option>
         </select>
-        <button onClick={() => setShowImport((v) => !v)} className="ml-auto rounded bg-blue-600 px-4 py-2 font-semibold text-white">
-          {showImport ? "Đóng nhập phim" : "+ Nhập phim từ TMDB"}
-        </button>
+        <div className="ml-auto flex gap-2">
+          <button onClick={openCreate} className="rounded border px-4 py-2 font-semibold">
+            + Thêm phim thủ công
+          </button>
+          <button
+            onClick={() => {
+              setShowImport((v) => !v);
+              closeForm();
+            }}
+            className="rounded bg-blue-600 px-4 py-2 font-semibold text-white"
+          >
+            {showImport ? "Đóng nhập phim" : "+ Nhập phim từ TMDB"}
+          </button>
+        </div>
       </div>
 
       {message.text && (
         <p className={message.type === "error" ? "text-red-500" : "text-green-500"}>{message.text}</p>
+      )}
+
+      {/* Form thêm/sửa phim */}
+      {showForm && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border p-4">
+          <h2 className="font-semibold">{editingId ? "Sửa thông tin phim" : "Thêm phim thủ công"}</h2>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label="Tên phim *">
+              <input value={form.title} onChange={setField("title")} required className={inputClass} />
+            </Field>
+            <Field label="Tên gốc">
+              <input value={form.originalTitle} onChange={setField("originalTitle")} className={inputClass} />
+            </Field>
+            <Field label="Thể loại (ví dụ: Hành động, Phiêu lưu)">
+              <input value={form.genres} onChange={setField("genres")} className={inputClass} />
+            </Field>
+            <Field label="Thời lượng (phút) *">
+              <input type="number" min="1" max="600" value={form.durationMin} onChange={setField("durationMin")} required className={inputClass} />
+            </Field>
+            <Field label="Phân loại độ tuổi">
+              <select value={form.ageRating} onChange={setField("ageRating")} className={inputClass}>
+                <option value="">Chưa phân loại</option>
+                {AGE_RATINGS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Ngày khởi chiếu">
+              <input type="date" value={form.releaseDate} onChange={setField("releaseDate")} className={inputClass} />
+            </Field>
+            <Field label="Trạng thái chiếu">
+              <select value={form.status} onChange={setField("status")} className={inputClass}>
+                {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Trailer YouTube (dán đường dẫn hoặc mã video)">
+              <input value={form.trailerKey} onChange={setField("trailerKey")} className={inputClass} />
+            </Field>
+            <Field label="Đường dẫn poster (https://...)" className="md:col-span-2">
+              <input value={form.posterUrl} onChange={setField("posterUrl")} className={inputClass} />
+            </Field>
+            <Field label="Đường dẫn ảnh nền (https://...)" className="md:col-span-2">
+              <input value={form.backdropUrl} onChange={setField("backdropUrl")} className={inputClass} />
+            </Field>
+            <Field label="Mô tả" className="md:col-span-2">
+              <textarea rows={4} value={form.overview} onChange={setField("overview")} className={inputClass} />
+            </Field>
+          </div>
+
+          {form.posterUrl.startsWith("https://") && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.posterUrl} alt="Xem trước poster" className="h-32 w-auto self-start rounded" />
+          )}
+
+          {editingId && (
+            <p className="text-xs">
+              Lưu ý: đổi thời lượng không làm thay đổi giờ kết thúc của các suất chiếu đã tạo trước đó.
+            </p>
+          )}
+
+          <div className="flex gap-2">
+            <button type="submit" className="rounded bg-blue-600 px-4 py-2 font-semibold text-white">Lưu</button>
+            <button type="button" onClick={closeForm} className="rounded border px-4 py-2">Hủy</button>
+          </div>
+        </form>
       )}
 
       {/* Khung nhập phim từ TMDB */}
@@ -245,6 +418,7 @@ export default function MovieManager() {
                 </td>
                 <td className="p-2">{m._count.showtimes}</td>
                 <td className="flex gap-2 p-2">
+                  <button onClick={() => openEdit(m)} className="underline">Sửa</button>
                   <button onClick={() => toggleActive(m)} className="underline">{m.isActive ? "Ẩn" : "Hiện"}</button>
                   <button onClick={() => handleDelete(m)} className="text-red-500 underline">Xóa</button>
                 </td>
