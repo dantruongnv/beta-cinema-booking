@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { apiRequest } from "@/lib/clientApi";
 
 const EMPTY_FORM = { name: "", rows: "8", seatsPerRow: "10", vipRows: "2" };
@@ -170,6 +171,7 @@ export default function RoomManager({ cinemaId }) {
                 <td className="p-2">{r._count.showtimes}</td>
                 <td className="p-2">{r.isActive ? "Hoạt động" : "Đã ẩn"}</td>
                 <td className="flex gap-2 p-2">
+                  <Link href={`/staff/rooms/${r.id}/seats`} className="underline">Sơ đồ ghế</Link>
                   <button onClick={() => openEdit(r)} className="underline">Sửa tên</button>
                   <button onClick={() => toggleActive(r)} className="underline">{r.isActive ? "Ẩn" : "Hiện"}</button>
                   <button onClick={() => handleDelete(r)} className="text-red-500 underline">Xóa</button>
