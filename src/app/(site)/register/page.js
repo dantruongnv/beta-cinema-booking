@@ -68,14 +68,14 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-blue-600 p-2 font-semibold text-white disabled:opacity-50"
+          className="rounded bg-red-600 p-2 font-semibold text-white disabled:opacity-50"
         >
           {loading ? "Đang xử lý..." : "Đăng ký"}
         </button>
       </form>
       <p className="text-sm">
         Đã có tài khoản?{" "}
-        <Link href="/login" className="text-blue-500 underline">
+        <Link href="/login" className="text-red-400 underline">
           Đăng nhập
         </Link>
       </p>
