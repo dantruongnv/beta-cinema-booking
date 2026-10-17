@@ -12,6 +12,7 @@ export default async function Navbar() {
           BETA <span className="text-white">Cinemas</span>
         </Link>
         <Link href="/movies" className="hover:text-red-400">Phim</Link>
+        <Link href="/cinemas" className="hover:text-red-400">Rạp</Link>
 
         <div className="ml-auto flex items-center gap-3 text-sm">
           {user ? (
