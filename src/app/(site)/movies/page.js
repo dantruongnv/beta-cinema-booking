@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import MovieCard from "@/components/site/MovieCard";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 export const metadata = { title: "Phim - Beta Cinemas" };
 
 export default async function MoviesPage({ searchParams }) {

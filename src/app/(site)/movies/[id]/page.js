@@ -7,7 +7,7 @@ import ShowtimePicker from "@/components/site/ShowtimePicker";
 import { AGE_RATING_INFO, STATUS_LABEL } from "@/lib/movieLabels";
 import { getBookingDays, PUBLIC_SHOWTIME_WHERE, SCHEDULE_SELECT, toPublicShowtime } from "@/lib/schedule";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateMetadata({ params }) {
   const id = parseId((await params).id);

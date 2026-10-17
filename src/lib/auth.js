@@ -1,9 +1,11 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 
 // Lấy user hiện tại từ DB (role luôn lấy từ DB, không tin dữ liệu trong cookie)
-export async function getCurrentUser() {
+// Bọc cache để trong cùng 1 request render chỉ query CSDL 1 lần
+export const getCurrentUser = cache(async () => {
   const id = await getSessionUserId();
   if (!id) return null;
   const user = await prisma.user.findUnique({
@@ -12,7 +14,7 @@ export async function getCurrentUser() {
   });
   if (!user || !user.isActive) return null;
   return user;
-}
+});
 
 // Dùng trong API: trả về { user } hoặc { error } (error là Response có sẵn)
 export async function requireUser() {
