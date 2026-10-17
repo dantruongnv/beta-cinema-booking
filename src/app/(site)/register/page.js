@@ -56,7 +56,7 @@ export default function RegisterPage() {
   const inputClass = "rounded border p-2 text-black";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-6">
+    <main className="mx-auto flex min-h-[60vh] max-w-sm flex-col justify-center gap-4 p-6">
       <h1 className="text-2xl font-bold">Đăng ký</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <input placeholder="Họ và tên" value={form.fullName} onChange={update("fullName")} required className={inputClass} />
