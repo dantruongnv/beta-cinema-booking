@@ -10,3 +10,8 @@ export function generateBookingCode() {
   }
   return code;
 }
+
+// Mã giao dịch giả lập, ví dụ: MOMO-M8K2F1Z-A91C3E
+export function generateTransactionCode(method) {
+  return `${method}-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString("hex").toUpperCase()}`;
+}
