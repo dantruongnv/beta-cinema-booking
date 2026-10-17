@@ -18,7 +18,7 @@ Next.js, Tailwind CSS, PostgreSQL, Prisma, TMDB API, Vercel
 
 1. Clone repo: `git clone <link-repo>`
 2. Cài thư viện: `npm install`
-3. Copy `.env.example` thành `.env.local` và điền giá trị
+3. Copy `.env.example` thành `.env` và điền giá trị
 4. Chạy: `npm run dev`
 5. Mở http://localhost:3000
 
