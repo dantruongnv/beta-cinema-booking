@@ -1,6 +1,6 @@
 # Website đặt vé xem phim Beta Cinema
 
-Đồ án môn học: <Tên môn học> - <Học kỳ, năm học> - GVHD: <Tên giảng viên>
+Đồ án môn học: Phát triển dự án CNTT - GVHD: <Vũ Đình Minh>
 
 ## Thành viên nhóm
 
@@ -12,7 +12,11 @@
 
 ## Công nghệ sử dụng
 
-Next.js, Tailwind CSS, PostgreSQL, Prisma, TMDB API, Vercel
+[![Next.js](https://img.shields.io/badge/Next.js-14%2B-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?style=flat-square&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://beta-cinema-booking.vercel.app/)
 
 ## Cách chạy dự án
 
