@@ -8,6 +8,7 @@ export default function StaffLayout({ children }) {
         <Link href="/staff" className="font-semibold">Nhân viên</Link>
         <Link href="/staff/cinemas">Rạp chiếu</Link>
         <Link href="/staff/movies">Phim</Link>
+        <Link href="/staff/showtimes">Lịch chiếu</Link>
         <span className="ml-auto">
           <LogoutButton />
         </span>
