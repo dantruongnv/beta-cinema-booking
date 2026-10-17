@@ -6,6 +6,7 @@ import { releaseExpiredBookings } from "@/lib/bookings";
 import { formatVn } from "@/lib/datetime";
 import { formatMoney } from "@/lib/format";
 import { SEAT_TYPE_LABEL } from "@/lib/pricing";
+import { PAYMENT_METHODS } from "@/lib/paymentMethods";
 import HoldControls from "@/components/site/HoldControls";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function CheckoutPage({ params }) {
   const booking = await prisma.booking.findFirst({
     where: { code, userId: user.id },
     include: {
+      payment: true,
       showtime: {
         include: {
           movie: { select: { title: true } },
@@ -33,7 +35,6 @@ export default async function CheckoutPage({ params }) {
   });
   if (!booking) notFound();
 
-  // Đơn đã thanh toán: sang trang vé (làm ở bước 8B)
   if (booking.status === "PAID") redirect(`/tickets/${booking.code}`);
 
   if (booking.status !== "PENDING") {
@@ -89,9 +90,26 @@ export default async function CheckoutPage({ params }) {
 
       <HoldControls code={booking.code} expiresAt={booking.expiresAt.toISOString()} showtimeId={booking.showtimeId} />
 
-      {/* Phương thức thanh toán sẽ được thêm ở bước 8B */}
-      <div className="rounded-lg border border-dashed border-neutral-700 p-4 text-sm text-neutral-400">
-        Phần chọn phương thức thanh toán (Momo, VNPay, ATM, Visa) sẽ được thêm ở bước tiếp theo.
+      <div className="rounded-lg border border-neutral-800 p-4">
+        <h2 className="mb-3 font-semibold">Phương thức thanh toán</h2>
+        {booking.payment?.status === "FAILED" && (
+          <p className="mb-3 text-sm text-red-500">Lần thanh toán trước không thành công. Bạn có thể thử lại.</p>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Object.entries(PAYMENT_METHODS).map(([key, m]) => (
+            <Link
+              key={key}
+              href={`/checkout/${booking.code}/pay?method=${key}`}
+              className="rounded border border-neutral-700 p-3 hover:border-red-500"
+            >
+              <b>{m.label}</b>
+              <p className="text-xs text-neutral-400">{m.description}</p>
+            </Link>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-neutral-500">
+          Thanh toán trong hệ thống này là mô phỏng cho mục đích học tập, không phát sinh giao dịch thật.
+        </p>
       </div>
     </div>
   );

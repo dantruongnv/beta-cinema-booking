@@ -13,6 +13,7 @@ export default async function Navbar() {
         </Link>
         <Link href="/movies" className="hover:text-red-400">Phim</Link>
         <Link href="/cinemas" className="hover:text-red-400">Rạp</Link>
+        {user && <Link href="/tickets" className="hover:text-red-400">Vé của tôi</Link>}
 
         <div className="ml-auto flex items-center gap-3 text-sm">
           {user ? (
