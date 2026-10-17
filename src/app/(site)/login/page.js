@@ -26,7 +26,9 @@ export default function LoginPage() {
         setError(data.message || "Đăng nhập thất bại");
         return;
       }
-      router.push(data.user.role === "STAFF" ? "/staff" : "/");
+            const next = new URLSearchParams(window.location.search).get("next");
+      const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+      router.push(safeNext ?? (data.user.role === "STAFF" ? "/staff" : "/"));
       router.refresh();
     } catch {
       setError("Không kết nối được máy chủ");
@@ -59,14 +61,14 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded bg-blue-600 p-2 font-semibold text-white disabled:opacity-50"
+          className="rounded bg-red-600 p-2 font-semibold text-white disabled:opacity-50"
         >
           {loading ? "Đang xử lý..." : "Đăng nhập"}
         </button>
       </form>
       <p className="text-sm">
         Chưa có tài khoản?{" "}
-        <Link href="/register" className="text-blue-500 underline">
+        <Link href="/register" className="text-red-400 underline">
           Đăng ký
         </Link>
       </p>
