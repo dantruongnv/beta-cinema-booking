@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { createSession } from "@/lib/session";
 import { normalizeEmail, isValidEmail, isValidPhone, isValidPassword } from "@/lib/validators";
+import { sendVerificationEmail, devLinkFor } from "@/lib/accountEmails";
 
 export async function POST(request) {
   let body;
@@ -26,10 +26,7 @@ export async function POST(request) {
     return Response.json({ message: "Số điện thoại không hợp lệ" }, { status: 400 });
   }
   if (!isValidPassword(password)) {
-    return Response.json(
-      { message: "Mật khẩu tối thiểu 8 ký tự, gồm cả chữ và số" },
-      { status: 400 }
-    );
+    return Response.json({ message: "Mật khẩu tối thiểu 8 ký tự, gồm cả chữ và số" }, { status: 400 });
   }
 
   const existing = await prisma.user.findFirst({
@@ -40,20 +37,19 @@ export async function POST(request) {
     return Response.json({ message: "Email hoặc số điện thoại đã được đăng ký" }, { status: 409 });
   }
 
+  let user;
   try {
-    const user = await prisma.user.create({
+    user = await prisma.user.create({
       data: {
         email,
         phone,
         fullName,
         passwordHash: await bcrypt.hash(password, 10),
         role: "CUSTOMER", // luôn là khách hàng, KHÔNG nhận role từ client
-        isVerified: true, // tạm thời; khi làm xác nhận email sẽ đổi thành false
+        isVerified: false, // phải xác nhận email trước khi đăng nhập
       },
-      select: { id: true, email: true, fullName: true, role: true },
+      select: { id: true, email: true, fullName: true },
     });
-    await createSession(user.id);
-    return Response.json({ user }, { status: 201 });
   } catch (error) {
     if (error.code === "P2002") {
       return Response.json({ message: "Email hoặc số điện thoại đã được đăng ký" }, { status: 409 });
@@ -61,4 +57,15 @@ export async function POST(request) {
     console.error(error);
     return Response.json({ message: "Lỗi máy chủ" }, { status: 500 });
   }
+
+  let result = null;
+  let emailFailed = false;
+  try {
+    result = await sendVerificationEmail(user);
+  } catch (error) {
+    console.error("Không gửi được email xác nhận:", error);
+    emailFailed = true;
+  }
+
+  return Response.json({ ok: true, emailFailed, devLink: devLinkFor(result) }, { status: 201 });
 }

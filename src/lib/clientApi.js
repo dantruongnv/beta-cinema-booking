@@ -13,10 +13,10 @@ export async function apiRequest(url, { method = "GET", body } = {}) {
       // phản hồi không phải JSON
     }
     if (!res.ok) {
-      return { ok: false, message: data?.message || `Lỗi ${res.status}` };
+      return { ok: false, message: data?.message || `Lỗi ${res.status}`, data };
     }
     return { ok: true, data };
   } catch {
-    return { ok: false, message: "Không kết nối được máy chủ" };
+    return { ok: false, message: "Không kết nối được máy chủ", data: null };
   }
 }

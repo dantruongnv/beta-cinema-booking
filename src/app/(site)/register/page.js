@@ -1,20 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiRequest } from "@/lib/clientApi";
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [form, setForm] = useState({ fullName: "", email: "", phone: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(null); // kết quả đăng ký thành công
 
   function update(field) {
     return (e) => setForm({ ...form, [field]: e.target.value });
@@ -28,32 +22,57 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: form.fullName,
-          email: form.email,
-          phone: form.phone,
-          password: form.password,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.message || "Đăng ký thất bại");
-        return;
-      }
-      router.push("/");
-      router.refresh();
-    } catch {
-      setError("Không kết nối được máy chủ");
-    } finally {
-      setLoading(false);
+    const result = await apiRequest("/api/auth/register", {
+      method: "POST",
+      body: { fullName: form.fullName, email: form.email, phone: form.phone, password: form.password },
+    });
+    setLoading(false);
+
+    if (!result.ok) {
+      setError(result.message);
+      return;
     }
+    const next = new URLSearchParams(window.location.search).get("next");
+    setDone({
+      email: form.email,
+      emailFailed: result.data.emailFailed,
+      devLink: result.data.devLink,
+      next: next && next.startsWith("/") && !next.startsWith("//") ? next : null,
+    });
   }
 
   const inputClass = "rounded border p-2 text-black";
+
+  if (done) {
+    return (
+      <main className="mx-auto flex min-h-[60vh] max-w-sm flex-col justify-center gap-4 p-6">
+        <h1 className="text-2xl font-bold">Kiểm tra email của bạn</h1>
+        {done.emailFailed ? (
+          <p className="text-sm text-amber-400">
+            Tài khoản đã được tạo nhưng chưa gửi được email xác nhận. Hãy vào trang đăng nhập và chọn
+            &quot;Gửi lại email xác nhận&quot;.
+          </p>
+        ) : (
+          <p className="text-sm">
+            Chúng tôi đã gửi email xác nhận tới <b>{done.email}</b>. Hãy mở liên kết trong email (có hiệu lực 24
+            giờ) rồi đăng nhập.
+          </p>
+        )}
+        {done.devLink && (
+          <p className="break-all rounded border border-amber-600 p-2 text-xs text-amber-400">
+            Chưa cấu hình email (môi trường phát triển). Dùng liên kết này:{" "}
+            <a href={done.devLink} className="underline">{done.devLink}</a>
+          </p>
+        )}
+        <Link
+          href={done.next ? `/login?next=${encodeURIComponent(done.next)}` : "/login"}
+          className="rounded bg-red-600 p-2 text-center font-semibold text-white"
+        >
+          Đến trang đăng nhập
+        </Link>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex min-h-[60vh] max-w-sm flex-col justify-center gap-4 p-6">
@@ -75,9 +94,7 @@ export default function RegisterPage() {
       </form>
       <p className="text-sm">
         Đã có tài khoản?{" "}
-        <Link href="/login" className="text-red-400 underline">
-          Đăng nhập
-        </Link>
+        <Link href="/login" className="text-red-400 underline">Đăng nhập</Link>
       </p>
     </main>
   );

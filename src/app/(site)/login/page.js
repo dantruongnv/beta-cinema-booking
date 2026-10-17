@@ -3,38 +3,51 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiRequest } from "@/lib/clientApi";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [devLink, setDevLink] = useState("");
+  const [notVerified, setNotVerified] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    setInfo("");
+    setDevLink("");
+    setNotVerified(false);
     setLoading(true);
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.message || "Đăng nhập thất bại");
-        return;
-      }
-            const next = new URLSearchParams(window.location.search).get("next");
-      const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
-      router.push(safeNext ?? (data.user.role === "STAFF" ? "/staff" : "/"));
-      router.refresh();
-    } catch {
-      setError("Không kết nối được máy chủ");
-    } finally {
-      setLoading(false);
+
+    const result = await apiRequest("/api/auth/login", { method: "POST", body: { email, password } });
+    setLoading(false);
+
+    if (!result.ok) {
+      setError(result.message);
+      setNotVerified(result.data?.code === "NOT_VERIFIED");
+      return;
     }
+
+    const next = new URLSearchParams(window.location.search).get("next");
+    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
+    router.push(safeNext ?? (result.data.user.role === "STAFF" ? "/staff" : "/"));
+    router.refresh();
+  }
+
+  async function resend() {
+    setInfo("");
+    setDevLink("");
+    const result = await apiRequest("/api/auth/resend-verification", { method: "POST", body: { email } });
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    setInfo(result.data.message);
+    if (result.data.devLink) setDevLink(result.data.devLink);
   }
 
   return (
@@ -58,6 +71,18 @@ export default function LoginPage() {
           className="rounded border p-2 text-black"
         />
         {error && <p className="text-sm text-red-500">{error}</p>}
+        {notVerified && (
+          <button type="button" onClick={resend} className="text-left text-sm text-red-400 underline">
+            Gửi lại email xác nhận
+          </button>
+        )}
+        {info && <p className="text-sm text-green-500">{info}</p>}
+        {devLink && (
+          <p className="break-all rounded border border-amber-600 p-2 text-xs text-amber-400">
+            Chưa cấu hình email (môi trường phát triển). Dùng liên kết này:{" "}
+            <a href={devLink} className="underline">{devLink}</a>
+          </p>
+        )}
         <button
           type="submit"
           disabled={loading}
@@ -67,10 +92,11 @@ export default function LoginPage() {
         </button>
       </form>
       <p className="text-sm">
+        <Link href="/forgot-password" className="text-red-400 underline">Quên mật khẩu?</Link>
+      </p>
+      <p className="text-sm">
         Chưa có tài khoản?{" "}
-        <Link href="/register" className="text-red-400 underline">
-          Đăng ký
-        </Link>
+        <Link href="/register" className="text-red-400 underline">Đăng ký</Link>
       </p>
     </main>
   );

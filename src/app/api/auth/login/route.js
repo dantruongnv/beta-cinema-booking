@@ -22,6 +22,17 @@ export async function POST(request) {
     return Response.json({ message: "Email hoặc mật khẩu không đúng" }, { status: 401 });
   }
 
+  // Chỉ báo chưa xác nhận sau khi mật khẩu đã đúng
+  if (!user.isVerified) {
+    return Response.json(
+      {
+        message: "Tài khoản chưa xác nhận email. Hãy kiểm tra hộp thư hoặc gửi lại email xác nhận.",
+        code: "NOT_VERIFIED",
+      },
+      { status: 403 }
+    );
+  }
+
   await createSession(user.id);
   return Response.json({
     user: { id: user.id, email: user.email, fullName: user.fullName, role: user.role },
