@@ -1,6 +1,6 @@
 # Website đặt vé xem phim Beta Cinema
 
-Đồ án môn học: Phát triển dự án CNTT - GVHD: <Vũ Đình Minh>
+Đồ án môn học: Phát triển dự án CNTT - GVHD: Vũ Đình Minh
 
 ## Thành viên nhóm
 
