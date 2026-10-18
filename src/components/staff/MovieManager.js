@@ -196,6 +196,21 @@ export default function MovieManager() {
     if (!window.confirm(`Xóa phim "${movie.title}"? Thao tác này không thể hoàn tác.`)) return;
     const result = await apiRequest(`/api/staff/movies/${movie.id}`, { method: "DELETE" });
     if (!result.ok) {
+      if (result.data?.hasBookings) {
+        const confirmForce = window.confirm(
+          `CẢNH BÁO: Phim "${movie.title}" đã có ${result.data.bookingsCount} đơn đặt vé!\n\nBạn có muốn XÓA CƯỠNG BỨC (xóa sạch phim cùng toàn bộ vé và suất chiếu liên quan) không?`
+        );
+        if (confirmForce) {
+          const forceRes = await apiRequest(`/api/staff/movies/${movie.id}?force=true`, { method: "DELETE" });
+          if (forceRes.ok) {
+            setMessage({ type: "success", text: `Đã xóa cưỡng bức phim "${movie.title}" và toàn bộ vé/suất chiếu liên quan.` });
+            load();
+            return;
+          }
+          setMessage({ type: "error", text: forceRes.message });
+          return;
+        }
+      }
       setMessage({ type: "error", text: result.message });
       return;
     }

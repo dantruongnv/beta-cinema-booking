@@ -64,7 +64,7 @@ export async function PATCH(request, { params }) {
   return Response.json({ movie });
 }
 
-export async function DELETE(_request, { params }) {
+export async function DELETE(request, { params }) {
   const { error: authError } = await requireStaff();
   if (authError) return authError;
 
@@ -79,12 +79,52 @@ export async function DELETE(_request, { params }) {
     return Response.json({ message: "Không tìm thấy phim" }, { status: 404 });
   }
 
-  // Phim đã từng có suất chiếu thì giữ lại để không mất lịch sử vé
+  const { searchParams } = new URL(request.url);
+  const force = searchParams.get("force") === "true";
+
+  // Nếu phim có suất chiếu, kiểm tra xem đã có đơn đặt vé nào chưa
   if (existing._count.showtimes > 0) {
-    return Response.json(
-      { message: "Phim đã có lịch chiếu nên không thể xóa, hãy chuyển sang trạng thái ẩn" },
-      { status: 409 }
-    );
+    const bookingsCount = await prisma.booking.count({
+      where: { showtime: { movieId: id } },
+    });
+
+    if (bookingsCount > 0 && !force) {
+      return Response.json(
+        {
+          message: `Phim đã có ${bookingsCount} đơn đặt vé. Bạn có thể vào mục "Vé & Đơn đặt" để hủy các đơn vé trước, hoặc chuyển phim sang trạng thái Ẩn.`,
+          hasBookings: true,
+          bookingsCount,
+        },
+        { status: 409 }
+      );
+    }
+
+    // Nếu không có vé nào hoặc người dùng xác nhận xóa cưỡng bức (force=true)
+    await prisma.$transaction(async (tx) => {
+      const showtimes = await tx.showtime.findMany({ where: { movieId: id }, select: { id: true } });
+      const showtimeIds = showtimes.map((s) => s.id);
+
+      if (showtimeIds.length > 0) {
+        const bookings = await tx.booking.findMany({
+          where: { showtimeId: { in: showtimeIds } },
+          select: { id: true },
+        });
+        const bookingIds = bookings.map((b) => b.id);
+
+        if (bookingIds.length > 0) {
+          await tx.payment.deleteMany({ where: { bookingId: { in: bookingIds } } });
+          await tx.bookingSeat.deleteMany({ where: { bookingId: { in: bookingIds } } });
+          await tx.booking.deleteMany({ where: { id: { in: bookingIds } } });
+        }
+
+        await tx.bookingSeat.deleteMany({ where: { showtimeId: { in: showtimeIds } } });
+        await tx.showtime.deleteMany({ where: { id: { in: showtimeIds } } });
+      }
+
+      await tx.movie.delete({ where: { id } });
+    });
+
+    return Response.json({ ok: true });
   }
 
   await prisma.movie.delete({ where: { id } });
