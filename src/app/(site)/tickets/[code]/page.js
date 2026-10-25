@@ -51,7 +51,9 @@ export default async function TicketPage({ params }) {
     (a, b) => a.seat.rowLabel.localeCompare(b.seat.rowLabel) || a.seat.seatNumber - b.seat.seatNumber
   );
   const qr = await QRCode.toDataURL(booking.code, { margin: 1, width: 240 });
-  const finished = showtime.startTime.getTime() <= Date.now();
+  const now = Date.now();
+  const isCompleted = showtime.endTime.getTime() <= now;
+  const isShowing = !isCompleted && showtime.startTime.getTime() <= now;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -75,7 +77,16 @@ export default async function TicketPage({ params }) {
           <p className="text-xs text-neutral-400">{showtime.room.cinema.address}</p>
           <p className="mt-1">
             Suất chiếu <b>{formatVn(showtime.startTime)}</b>
-            {finished && <span className="ml-2 rounded bg-neutral-700 px-2 py-0.5 text-xs">Đã chiếu</span>}
+            {isCompleted && (
+              <span className="ml-2 rounded bg-blue-900/80 text-blue-200 border border-blue-700/60 px-2 py-0.5 text-xs">
+                Đã hoàn thành
+              </span>
+            )}
+            {isShowing && (
+              <span className="ml-2 rounded bg-purple-900/80 text-purple-200 border border-purple-700/60 px-2 py-0.5 text-xs">
+                Đang chiếu
+              </span>
+            )}
           </p>
 
           <div className="mt-2">

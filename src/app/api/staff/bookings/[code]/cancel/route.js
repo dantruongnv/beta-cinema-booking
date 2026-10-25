@@ -11,7 +11,7 @@ export async function POST(_request, { params }) {
     where: { code },
     include: {
       seats: true,
-      showtime: { select: { id: true, startTime: true } },
+      showtime: { select: { id: true, startTime: true, endTime: true } },
     },
   });
 
@@ -21,6 +21,25 @@ export async function POST(_request, { params }) {
 
   if (booking.status === "CANCELLED") {
     return Response.json({ message: "Đơn đặt vé này đã bị hủy trước đó" }, { status: 400 });
+  }
+
+  if (booking.status === "EXPIRED") {
+    return Response.json({ message: "Đơn đặt vé này đã hết hạn giữ ghế" }, { status: 400 });
+  }
+
+  const now = new Date();
+  if (booking.showtime.endTime <= now) {
+    return Response.json(
+      { message: "Suất chiếu này đã hoàn thành, không thể hủy vé hoặc nhả ghế" },
+      { status: 400 }
+    );
+  }
+
+  if (booking.showtime.startTime <= now) {
+    return Response.json(
+      { message: "Suất chiếu đang diễn ra, không thể hủy vé hoặc nhả ghế" },
+      { status: 400 }
+    );
   }
 
   // Thực hiện hủy đơn và giải phóng ghế trong 1 giao dịch CSDL

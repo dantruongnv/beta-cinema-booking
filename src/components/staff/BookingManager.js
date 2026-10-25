@@ -8,7 +8,9 @@ import { SEAT_TYPE_LABEL } from "@/lib/pricing";
 import { PAYMENT_METHODS } from "@/lib/paymentMethods";
 
 const STATUS_BADGE = {
-  PAID: { label: "Đã thanh toán", bg: "bg-emerald-950/80 text-emerald-400 border-emerald-800" },
+  PAID: { label: "Đã thanh toán (Sắp chiếu)", bg: "bg-emerald-950/80 text-emerald-400 border-emerald-800" },
+  COMPLETED: { label: "Đã hoàn thành", bg: "bg-blue-950/80 text-blue-400 border-blue-800" },
+  SHOWING: { label: "Đang chiếu", bg: "bg-purple-950/80 text-purple-400 border-purple-800" },
   PENDING: { label: "Chờ thanh toán", bg: "bg-amber-950/80 text-amber-400 border-amber-800" },
   CANCELLED: { label: "Đã hủy", bg: "bg-red-950/80 text-red-400 border-red-800" },
   EXPIRED: { label: "Hết hạn giữ ghế", bg: "bg-neutral-800 text-neutral-400 border-neutral-700" },
@@ -62,7 +64,7 @@ export default function BookingManager() {
     return () => clearTimeout(timer);
   }, [loadBookings]);
 
-  // Hủy vé & nhả ghế
+  // Hủy vé & nhả ghế (chỉ cho phép khi suất chiếu chưa diễn ra)
   async function handleCancel(b) {
     const isPaid = b.status === "PAID";
     const warnText = isPaid
@@ -89,6 +91,10 @@ export default function BookingManager() {
     .filter((b) => b.status === "PAID")
     .reduce((sum, b) => sum + b.totalAmount, 0);
 
+  const completedCount = bookings.filter(
+    (b) => (b.displayStatus ?? b.status) === "COMPLETED"
+  ).length;
+
   const inputClass = "rounded border border-neutral-700 bg-neutral-900 p-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-red-500";
 
   return (
@@ -109,7 +115,8 @@ export default function BookingManager() {
           className={inputClass}
         >
           <option value="">Tất cả trạng thái</option>
-          <option value="PAID">Đã thanh toán (PAID)</option>
+          <option value="PAID">Đã thanh toán (Sắp chiếu)</option>
+          <option value="COMPLETED">Đã hoàn thành (Đã xem xong)</option>
           <option value="PENDING">Chờ thanh toán (PENDING)</option>
           <option value="CANCELLED">Đã hủy (CANCELLED)</option>
           <option value="EXPIRED">Hết hạn (EXPIRED)</option>
@@ -168,14 +175,18 @@ export default function BookingManager() {
       )}
 
       {/* Thẻ thống kê nhanh */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
           <span className="text-xs text-neutral-400">Tổng số đơn</span>
           <p className="mt-1 text-2xl font-black text-white">{totalCount}</p>
         </div>
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-          <span className="text-xs text-neutral-400">Doanh thu đơn Đã Thanh Toán</span>
+          <span className="text-xs text-neutral-400">Doanh thu vé</span>
           <p className="mt-1 text-2xl font-black text-emerald-400">{formatMoney(paidTotal)}</p>
+        </div>
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+          <span className="text-xs text-neutral-400">Đã hoàn thành</span>
+          <p className="mt-1 text-2xl font-black text-blue-400">{completedCount}</p>
         </div>
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
           <span className="text-xs text-neutral-400">Đơn chờ thanh toán</span>
@@ -201,8 +212,11 @@ export default function BookingManager() {
       ) : (
         <div className="flex flex-col gap-4">
           {bookings.map((b) => {
-            const badge = STATUS_BADGE[b.status] ?? STATUS_BADGE.EXPIRED;
-            const canCancel = b.status === "PAID" || b.status === "PENDING";
+            const currentStatus = b.displayStatus ?? b.status;
+            const badge = STATUS_BADGE[currentStatus] ?? STATUS_BADGE.EXPIRED;
+            const isCompleted = currentStatus === "COMPLETED";
+            const isShowing = currentStatus === "SHOWING";
+            const canCancel = (b.status === "PAID" || b.status === "PENDING") && !isCompleted && !isShowing;
             const isProcessing = actionLoading === b.code;
 
             return (
@@ -273,7 +287,7 @@ export default function BookingManager() {
                     )}
                   </div>
 
-                  {canCancel && (
+                  {canCancel ? (
                     <button
                       type="button"
                       disabled={isProcessing}
@@ -282,7 +296,15 @@ export default function BookingManager() {
                     >
                       {isProcessing ? "Đang xử lý..." : "Hủy vé & Nhả ghế"}
                     </button>
-                  )}
+                  ) : isCompleted ? (
+                    <span className="rounded bg-blue-950/50 border border-blue-800/60 px-2.5 py-1 text-xs font-semibold text-blue-400">
+                      ✓ Đã hoàn thành
+                    </span>
+                  ) : isShowing ? (
+                    <span className="rounded bg-purple-950/50 border border-purple-800/60 px-2.5 py-1 text-xs font-semibold text-purple-400">
+                      🎬 Đang chiếu
+                    </span>
+                  ) : null}
                 </div>
               </div>
             );

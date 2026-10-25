@@ -64,13 +64,20 @@ export default async function MyTicketsPage() {
 
       <Section title="Vé đã thanh toán" count={paid.length}>
         {paid.map((b) => {
-          const upcoming = b.showtime.startTime.getTime() > now;
+          const isCompleted = b.showtime.endTime.getTime() <= now;
+          const isShowing = !isCompleted && b.showtime.startTime.getTime() <= now;
+          const badge = isCompleted
+            ? { text: "Đã hoàn thành", className: "bg-blue-800" }
+            : isShowing
+              ? { text: "Đang chiếu", className: "bg-purple-700" }
+              : { text: "Sắp chiếu", className: "bg-green-700" };
+
           return (
             <BookingCard
               key={b.id}
               booking={b}
               href={`/tickets/${b.code}`}
-              badge={upcoming ? { text: "Sắp chiếu", className: "bg-green-700" } : { text: "Đã chiếu", className: "bg-neutral-600" }}
+              badge={badge}
             />
           );
         })}
