@@ -32,8 +32,16 @@ export async function GET(request) {
   const date = sp.get("date");
 
   const where = {};
+  const showtimeWhere = {};
+  const now = new Date();
 
-  if (["PENDING", "PAID", "CANCELLED", "EXPIRED"].includes(status)) {
+  if (status === "COMPLETED") {
+    where.status = "PAID";
+    showtimeWhere.endTime = { lte: now };
+  } else if (status === "PAID") {
+    where.status = "PAID";
+    showtimeWhere.endTime = { gt: now };
+  } else if (["PENDING", "CANCELLED", "EXPIRED"].includes(status)) {
     where.status = status;
   }
 
@@ -46,7 +54,6 @@ export async function GET(request) {
     ];
   }
 
-  const showtimeWhere = {};
   if (cinemaId) {
     showtimeWhere.room = { cinemaId };
   }
@@ -73,5 +80,19 @@ export async function GET(request) {
     prisma.booking.count({ where }),
   ]);
 
-  return Response.json({ bookings, total });
+  const enhancedBookings = bookings.map((b) => {
+    let displayStatus = b.status;
+    if (b.status === "PAID") {
+      const end = new Date(b.showtime.endTime);
+      const start = new Date(b.showtime.startTime);
+      if (end <= now) {
+        displayStatus = "COMPLETED";
+      } else if (start <= now) {
+        displayStatus = "SHOWING";
+      }
+    }
+    return { ...b, displayStatus };
+  });
+
+  return Response.json({ bookings: enhancedBookings, total });
 }
